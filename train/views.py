@@ -95,28 +95,39 @@ class TrainMapListView(generics.ListAPIView):
     queryset = TrainMap.objects.all()
     serializer_class = TrainMapSerializer
 
-
-
 from rest_framework.generics import ListAPIView
+from django.db.models import Q
 from .models import Train
 from .serializers import TrainSerializer
 from rest_framework import viewsets
+
 class TrainListView(ListAPIView):
     serializer_class = TrainSerializer
 
     def get_queryset(self):
         queryset = Train.objects.all()
 
-        source = self.request.query_params.get('source')
-        destination = self.request.query_params.get('destination')
+        # ✅ MUST MATCH FRONTEND
+        source = self.request.query_params.get('from')
+        destination = self.request.query_params.get('to')
 
-        if source:
-            queryset = queryset.filter(source__icontains=source)
+        print("FROM:", source)
+        print("TO:", destination)
 
-        if destination:
-            queryset = queryset.filter(destination__icontains=destination)
+        if source and destination:
+            source = source.strip().lower()
+            destination = destination.strip().lower()
+
+            queryset = queryset.filter(
+                Q(source__icontains=source, destination__icontains=destination) |
+                Q(source__icontains=destination, destination__icontains=source)
+            )
+
+        print("RESULT COUNT:", queryset.count())
 
         return queryset
+
+
 
 
 class TrainViewSet(viewsets.ModelViewSet):
